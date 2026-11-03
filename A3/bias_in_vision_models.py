@@ -27,7 +27,6 @@ COCO_CATEGORY_OBJECTS = {
 
 def scores_to_predictions(scores, threshold=0.5):
     """Convert positive-class scores or probabilities into 0/1 predictions."""
-    # TODO (Part 2): support 1D scores and 2D class-score arrays.
     scores = np.asarray(scores)
     if scores.ndim == 2:
         if scores.shape[1] == 1:
@@ -53,7 +52,6 @@ def classification_metrics(y_true, scores, threshold=0.5):
     Return a dictionary with keys:
       n, positives, predicted_positives, accuracy, precision, recall
     """
-    # TODO (Part 2): compute metrics from y_true and thresholded scores.
     y_true = np.asarray(y_true).reshape(-1).astype(int)
     predictions = scores_to_predictions(scores, threshold)
     if len(y_true) != len(predictions):
@@ -80,7 +78,6 @@ def evaluate_by_group(y_true, scores, group_masks, threshold=0.5):
     `group_masks` should map names such as "female", "male", "dark_skin",
     and "light_skin" to boolean arrays aligned with `y_true`.
     """
-    # TODO (Part 2): compute metrics overall and on each nonempty group mask.
     y_true = np.asarray(y_true).reshape(-1)
     scores = np.asarray(scores)
     results = {"overall": classification_metrics(y_true, scores, threshold)}
@@ -95,13 +92,11 @@ def evaluate_by_group(y_true, scores, group_masks, threshold=0.5):
 
 def recall_gap(group_metrics, group_names):
     """Return max recall minus min recall over the requested groups."""
-    # TODO (Part 2): compute the recall gap over the named groups.
     return metric_gap(group_metrics, group_names, "recall")
 
 
 def metric_gap(group_metrics, group_names, metric):
     """Return max metric value minus min metric value over the requested groups."""
-    # TODO (Part 2): compute the requested metric gap over the named groups.
     values = [group_metrics[name][metric] for name in group_names]
     return float(max(values) - min(values)) if values else 0.0
 
@@ -112,7 +107,6 @@ def summarize_group_gaps(group_metrics, comparisons, metrics=("accuracy", "preci
     `comparisons` maps comparison names, such as "gender", to a list of group
     names, such as ["female", "male"].
     """
-    # TODO (Part 2): compute each requested metric gap for each comparison.
     gaps = {}
     for name, groups in comparisons.items():
         gaps[name] = {}
@@ -123,13 +117,11 @@ def summarize_group_gaps(group_metrics, comparisons, metrics=("accuracy", "preci
 
 def lowest_recall_group(group_metrics, group_names):
     """Return the group name with the lowest recall."""
-    # TODO (Part 2): identify the group with the lowest recall.
     return min(group_names, key=lambda group: group_metrics[group]["recall"])
 
 
 def category_target(object_labels, object_names, category):
     """Return a binary target for whether each image contains a category object."""
-    # TODO (Part 2): combine object-label columns for the requested category.
     object_labels = np.asarray(object_labels)
     target = np.zeros(len(object_labels), dtype=bool)
 
@@ -142,7 +134,6 @@ def category_target(object_labels, object_names, category):
 
 def object_recalls(object_labels, object_names, scores, category, threshold=0.5):
     """Return recall for each object inside a COCO category."""
-    # TODO (Part 2): report per-object recall among images containing that object.
     object_labels = np.asarray(object_labels)
     predictions = scores_to_predictions(scores, threshold)
     recalls = {}
@@ -157,7 +148,6 @@ def object_recalls(object_labels, object_names, scores, category, threshold=0.5)
 
 def category_recalls(category_labels, scores, threshold=0.5):
     """Return recall for each nonempty category label in arrays such as `val_sport_cat`."""
-    # TODO (Part 2): report recall for each object category in the notebook labels.
     predictions = scores_to_predictions(scores, threshold)
     categories = {}
     for i, value in enumerate(category_labels):
@@ -179,7 +169,6 @@ def make_recall_reweighting(y_true, group_masks, target_group, weight=3.0):
     The intended intervention upweights positive examples in the group with
     the lowest baseline recall. Normalize weights to have mean 1.
     """
-    # TODO (2b): implement the reweighting intervention.
     y_true = np.asarray(y_true).reshape(-1).astype(bool)
     mask = np.asarray(group_masks[target_group], dtype=bool).reshape(-1)
     if weight <= 0 or len(mask) != len(y_true):
@@ -198,7 +187,6 @@ def soft_recall_difference(y_true, scores, group_masks, group_a, group_b, eps=1e
     examples in a group. This helper mirrors the in-processing intervention in
     the notebook.
     """
-    # TODO (2b loss): compute the soft-recall gap for group_a and group_b.
     if isinstance(scores, torch.Tensor):
         probabilities = scores.reshape(-1)
         y = torch.as_tensor(y_true, device=probabilities.device).reshape(-1).bool()
@@ -235,7 +223,6 @@ def apply_group_thresholds(scores, group_masks, thresholds, default_threshold=0.
     `thresholds` maps group names such as "female" and "male" to thresholds.
     Examples not covered by those groups should use `default_threshold`.
     """
-    # TODO (2b thresholding): apply group-specific thresholds to scores.
     scores = np.asarray(scores)
     predictions = scores_to_predictions(scores, default_threshold)
     for group, threshold in thresholds.items():
