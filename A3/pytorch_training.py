@@ -61,8 +61,9 @@ class SingleHeadSelfAttention(nn.Module):
         self.Q = nn.Linear(embed_dim, embed_dim)
         self.K = nn.Linear(embed_dim, embed_dim)
         self.V = nn.Linear(embed_dim, embed_dim)
+        self.O = nn.Linear(embed_dim, embed_dim)
 
-    def forward(self, tokens, return_attn=False):
+    def forward(self, tokens):
         """Apply self-attention to B x num_tokens x embed_dim tokens."""
         Q = self.Q(tokens)
         K = self.K(tokens)
@@ -72,45 +73,53 @@ class SingleHeadSelfAttention(nn.Module):
         attn = Q @ K.transpose(-2, -1) / (d ** 0.5)
         attn = torch.softmax(attn, dim=-1)
         T = attn @ V
-        if return_attn:
-            return T, attn
-        return T
+        return self.O(T)
 
 
 class TokenwiseMLP(nn.Module):
-    """Apply a 1x1 convolution independently to each token."""
+    """Apply the same MLP independently to every token.
 
-    def __init__(self, token_dim):
+    The assignment asks you to use convolutional layers, not nn.Linear.
+    """
+    def __init__(self, embed_dim, hidden_dim):
         super().__init__()
-        self.token_dim = token_dim
-        self.W = nn.Conv1d(token_dim, token_dim, kernel_size=1)
+
+        self.net = nn.Sequential(
+            nn.Conv1d(embed_dim, hidden_dim, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv1d(hidden_dim, embed_dim, kernel_size=1)
+        )
 
     def forward(self, tokens):
         """Return a tensor with the same shape as `tokens`."""
-        x_trans = tokens.transpose(1, 2)
-        conv = self.W(x_trans)
-        mlp_out = conv.transpose(1, 2)
-        return mlp_out
+        x = tokens.transpose(1, 2)
+        x = self.net(x)
+        return x.transpose(1, 2)
 
 
 def per_class_accuracy(logits, labels, num_classes):
-    """Return per-class accuracy as percentages."""
-    preds = logits.argmax(dim=1)
+    """Return a length-`num_classes` tensor of per-class accuracies."""
+    preds = logits.argmax(dim=-1).reshape(-1)
     labels = labels.reshape(-1)
+
     correct = [0] * num_classes
     total = [0] * num_classes
 
-    y_list = labels.detach().cpu().tolist()
-    preds_list = preds.detach().cpu().tolist()
-    for i in range(len(y_list)):
-        true_label = y_list[i]
-        pred_label = preds_list[i]
-        total[true_label] += 1
-        if true_label == pred_label:
-            correct[true_label] += 1
+    for pred, label in zip(preds.tolist(), labels.tolist()):
+        total[label] += 1
+        if pred == label:
+            correct[label] += 1
 
     accs = []
-    for c in range(num_classes):
-        accs.append(100 * correct[c] / total[c] if total[c] > 0 else 0.0)
 
-    return torch.tensor(accs, dtype=torch.float32, device=logits.device)
+    for c in range(num_classes):
+        if total[c] > 0:
+            accs.append(correct[c] / total[c])
+        else:
+            accs.append(0.0)
+
+    return torch.tensor(
+        accs,
+        dtype=torch.float32,
+        device=logits.device
+    )
